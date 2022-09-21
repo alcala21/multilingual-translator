@@ -1,3 +1,4 @@
+import sys
 import requests
 from bs4 import BeautifulSoup
 
@@ -36,6 +37,7 @@ class Translator:
         self.examples = None
         self.filename = None
         self.log = []
+        self.url = None
 
     def start(self):
         self.get_inputs()
@@ -57,30 +59,14 @@ class Translator:
     def extract_content(content_list):
         return [item.text.strip() for item in content_list]
 
-    def get_input(self, msg):
-        try:
-            while (id := int(input(msg))) not in self.languages:
-                continue
-            return id
-        except ValueError:
-            return None
-
     def get_inputs(self):
-        print(self.msg_0)
-        for key, val in self.languages.items():
-            print(f"{key}. {val}")
-        while not (id_1 := self.get_input(self.msg_1)):
-            continue
-        self.from_ = self.languages[id_1]
-        while (id_2 := self.get_input(self.msg_2)) is None:
-            continue
-        if id_2 != 0:
-            self.to_ = [self.languages[id_2]]
-        else:
+        self.from_, self.to_, self.word = sys.argv[1], [sys.argv[2]], sys.argv[3]
+        if self.to_[0].lower() == "all":
             self.to_ = [
-                self.languages[ix] for ix in self.languages if ix not in [0, id_1]
+                self.languages[i]
+                for i in range(1, 14)
+                if self.languages[i].lower() != self.from_.lower()
             ]
-        self.word = input(self.msg_3)
         self.filename = f"{self.word}.txt"
 
     def make_url(self, from_lang, to_lang):
