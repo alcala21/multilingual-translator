@@ -31,7 +31,6 @@ class Translator:
         self.from_ = None
         self.to_ = None
         self.word = None
-        self.code = 0
         self.r = None
         self.translations = None
         self.examples = None
@@ -40,18 +39,19 @@ class Translator:
         self.url = None
 
     def start(self):
-        self.get_inputs()
-        if len(self.to_) == 1:
-            self.translate(self.print_multiple)
-        elif len(self.to_) > 1:
-            self.translate(self.print_one)
-        with open(self.filename, "w") as f:
-            f.writelines(self.log)
+        if self.get_inputs():
+            if len(self.to_) == 1:
+                self.translate(self.print_multiple)
+            elif len(self.to_) > 1:
+                self.translate(self.print_one)
+            with open(self.filename, "w") as f:
+                f.writelines(self.log)
 
     def translate(self, printer):
         for to_lang in self.to_:
             self.make_url(self.from_, to_lang)
-            self.request_translation()
+            if not self.request_translation():
+                break
             self.parse_html()
             printer(to_lang)
 
@@ -67,17 +67,31 @@ class Translator:
                 for i in range(1, 14)
                 if self.languages[i].lower() != self.from_.lower()
             ]
+        elif self.to_[0].lower() not in (
+            lcase_languages := [lang.lower() for lang in self.languages.values()]
+        ):
+            print(f"Sorry, the program doesn't support {self.to_[0].lower()}")
+            return False
+        elif self.from_.lower() not in lcase_languages:
+            print(f"Sorry, the program doesn't support {self.from_.lower()}")
+            return False
+
         self.filename = f"{self.word}.txt"
+        return True
 
     def make_url(self, from_lang, to_lang):
         self.url = f"{self.base_url}/{from_lang.lower()}-{to_lang.lower()}/{self.word}"
 
     def request_translation(self):
-        code = 0
-        while code != 200:
-            self.r = requests.get(self.url, headers=self.headers)
-            code = self.r.status_code
-        self.code = code
+        self.r = requests.get(self.url, headers=self.headers)
+        code = self.r.status_code
+        if code == 404:
+            print(f"Sorry, unable to find {self.word}")
+            return False
+        elif code != 200:
+            print("Something wrong with your internet connection")
+            return False
+        return True
 
     def parse_html(self):
         soup = BeautifulSoup(self.r.content, "html.parser")
